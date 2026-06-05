@@ -103,7 +103,7 @@ void rotateMotorTurns(String direction, float turns) {
 // Assuming the slotted wheel has N slots (we'll define PULSES_PER_REVOLUTION)
 void calculateRPM() {
   unsigned long now = millis();
-  if (now - lastTime >= 1000) { // Update every second
+  if (now - lastTime >= 250) { // Update every 250ms
     // Disable interrupt temporarily to read pulseCount
     noInterrupts();
     long currentPulseCount = pulseCount;
@@ -111,9 +111,12 @@ void calculateRPM() {
     lastPulseCount = currentPulseCount;
     interrupts();
 
-    // Calculate motor shaft RPM: (pulses per second) * (60 seconds / pulses per revolution)
-    float motorRPS = (pulses * 1.0) / ((now - lastTime) / 1000.0); // motor shaft revolutions per second
-    motorRpm = motorRPS * 60.0; // motor shaft revolutions per minute
+    // Calculate time interval in seconds
+    float timeInSeconds = (now - lastTime) / 1000.0;
+    
+    // Calculate motor shaft RPM: (pulses * 60) / (pulses per revolution * time in seconds)
+    // Pulses per revolution = PULSES_PER_REVOLUTION (11 slots on encoder wheel)
+    motorRpm = (pulses * 60.0) / (PULSES_PER_REVOLUTION * timeInSeconds);
     
     // Calculate output shaft RPM after gearbox reduction
     rpm = motorRpm / GEARBOX_RATIO;
@@ -129,28 +132,104 @@ const char index_html[] PROGMEM = R"rawliteral(
   <title>ESP32 Motor Control</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-    .button { padding: 10px 20px; font-size: 16px; margin: 10px; cursor: pointer; }
-    .slider { width: 80%; }
-    .speed-display { font-size: 24px; margin: 20px; }
-    .rpm-display { font-size: 24px; margin: 20px; }
-    .gear-display { font-size: 24px; margin: 20px; }
-    .turn-button { background-color: #4CAF50; color: white; border: none; padding: 12px 24px; font-size: 18px; margin: 15px; cursor: pointer; border-radius: 4px; }
-    .turn-button:hover { background-color: #45a049; }
-    .turn-button:active { background-color: #3e8e41; }
-    .ccw-button { background-color: #f44336; }
-    .ccw-button:hover { background-color: #da190b; }
-    .ccw-button:active { background-color: #b71c1c; }
-    .gear-input { width: 80px; text-align: center; font-size: 18px; margin: 10px; padding: 5px; }
-    .gear-button { background-color: #2196F3; color: white; border: none; padding: 8px 16px; font-size: 16px; margin: 10px; cursor: pointer; border-radius: 4px; }
-    .gear-button:hover { background-color: #0b7dda; }
-    .gear-button:active { background-color: #0a63bd; }
-    .ten-turn-button { background-color: #FF9800; color: white; border: none; padding: 12px 24px; font-size: 18px; margin: 15px; cursor: pointer; border-radius: 4px; }
-    .ten-turn-button:hover { background-color: #e68900; }
-    .ten-turn-button:active { background-color: #cc7a00; }
-    .ten-turn-ccw-button { background-color: #ff5722; }
-    .ten-turn-ccw-button:hover { background-color: #e64a19; }
-    .ten-turn-ccw-button:active { background-color: #cc4a00; }
+    body { 
+      font-family: Arial, sans-serif; 
+      text-align: center; 
+      margin-top: 50px;
+      background-color: #121212;
+      color: #ffffff;
+    }
+    .button { 
+      padding: 10px 20px; 
+      font-size: 16px; 
+      margin: 10px; 
+      cursor: pointer; 
+      background-color: #2a2a2a;
+      color: #cccccc;
+      border: 1px solid #444444;
+      border-radius: 4px;
+      width: 100px;
+      text-align: center;
+    }
+    .button:hover {
+      background-color: #333333;
+    }
+    .button:active {
+      background-color: #1f1f1f;
+    }
+    .stop-button {
+      background-color: #ff0000;
+      border-color: #cc0000;
+      color: #ffffff;
+    }
+    .stop-button:hover {
+      background-color: #ff3333;
+    }
+    .stop-button:active {
+      background-color: #cc0000;
+    }
+    .slider { 
+      width: 80%; 
+      background: #1f1f1f;
+    }
+    .speed-display, .rpm-display, .gear-display { 
+      font-size: 24px; 
+      margin: 20px;
+      color: #00ff88;
+    }
+    .rotation-button {
+      background-color: #2a2a2a;
+      color: #cccccc;
+      border: 1px solid #444444;
+      padding: 12px 24px;
+      font-size: 18px;
+      margin: 10px;
+      cursor: pointer;
+      border-radius: 4px;
+      min-width: 80px;
+    }
+    .rotation-button:hover {
+      background-color: #333333;
+    }
+    .rotation-button:active {
+      background-color: #1f1f1f;
+    }
+    .gear-input { 
+      width: 80px; 
+      text-align: center; 
+      font-size: 18px; 
+      margin: 10px; 
+      padding: 5px;
+      background-color: #2a2a2a;
+      color: #cccccc;
+      border: 1px solid #444444;
+      border-radius: 4px;
+    }
+    .gear-button {
+      background-color: #2a2a2a;
+      color: #cccccc;
+      border: 1px solid #444444;
+      padding: 8px 16px;
+      font-size: 16px;
+      margin: 10px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .gear-button:hover {
+      background-color: #333333;
+    }
+    .gear-button:active {
+      background-color: #1f1f1f;
+    }
+    .button-container {
+      margin: 20px 0;
+    }
+    .button-row {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -158,13 +237,19 @@ const char index_html[] PROGMEM = R"rawliteral(
   <div>
     <button class="button" onclick="sendDirection('Forward')">Forward</button>
     <button class="button" onclick="sendDirection('Backward')">Backward</button>
-    <button class="button" onclick="sendDirection('Stop')">Stop</button>
   </div>
-  <div>
-    <button class="turn-button" onclick="sendTurnCW()">Rotate Clockwise 1 Turn</button>
-    <button class="turn-button ccw-button" onclick="sendTurnCCW()">Rotate Counterclockwise 1 Turn</button>
-    <button class="ten-turn-button" onclick="sendTurn10CW()">Rotate Clockwise 10 Turns</button>
-    <button class="ten-turn-button ten-turn-ccw-button" onclick="sendTurn10CCW()">Rotate Counterclockwise 10 Turns</button>
+  <div class="button-container">
+    <div class="button-row">
+      <button class="rotation-button" onclick="sendTurnCCW()">-1</button>
+      <button class="rotation-button" onclick="sendTurnCW()">+1</button>
+    </div>
+    <div class="button-row">
+      <button class="rotation-button" onclick="sendTurn10CCW()">-10</button>
+      <button class="rotation-button" onclick="sendTurn10CW()">+10</button>
+    </div>
+    <div class="button-row">
+      <button class="button stop-button" onclick="sendDirection('Stop')">Stop</button>
+    </div>
   </div>
   <div class="speed-display">Speed: <span id="speedValue">127</span></div>
   <input type="range" min="0" max="255" class="slider" id="speedSlider" value="127" onchange="updateSpeed(this.value)">
@@ -192,7 +277,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       // Show feedback
       this.innerText = "Rotating...";
       setTimeout(() => {
-        this.innerText = "Rotate Clockwise 1 Turn";
+        this.innerText = "+1";
       }, 3000);
     }
     function sendTurnCCW() {
@@ -202,7 +287,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       // Show feedback
       this.innerText = "Rotating...";
       setTimeout(() => {
-        this.innerText = "Rotate Counterclockwise 1 Turn";
+        this.innerText = "-1";
       }, 3000);
     }
     function sendTurn10CW() {
@@ -212,7 +297,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       // Show feedback
       this.innerText = "Rotating...";
       setTimeout(() => {
-        this.innerText = "Rotate Clockwise 10 Turns";
+        this.innerText = "+10";
       }, 8000); // Longer timeout for 10 turns
     }
     function sendTurn10CCW() {
@@ -222,7 +307,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       // Show feedback
       this.innerText = "Rotating...";
       setTimeout(() => {
-        this.innerText = "Rotate Counterclockwise 10 Turns";
+        this.innerText = "-10";
       }, 8000); // Longer timeout for 10 turns
     }
     function updateGearRatio() {
@@ -240,7 +325,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         this.innerText = "Set Gear Ratio";
       }, 1000);
     }
-    // Update RPM every second
+    // Update RPM every 250ms
     setInterval(function() {
       var xhr = new XMLHttpRequest();
       xhr.onreadystatechange = function() {
@@ -250,9 +335,9 @@ const char index_html[] PROGMEM = R"rawliteral(
       };
       xhr.open("GET", "/getRPM", true);
       xhr.send();
-    }, 1000);
+    }, 250);
     
-    // Update motor RPM every second
+    // Update motor RPM every 250ms
     setInterval(function() {
       var xhr = new XMLHttpRequest();
       xhr.onreadystatechange = function() {
@@ -262,7 +347,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       };
       xhr.open("GET", "/getMotorRPM", true);
       xhr.send();
-    }, 1000);
+    }, 250);
   </script>
 </body>
 </html>)rawliteral";
@@ -429,5 +514,5 @@ void setup() {
 
 void loop() {
   server.handleClient();
-  calculateRPM(); // Update RPM every second
+  calculateRPM(); // Update RPM every 250ms
 }
