@@ -1,6 +1,6 @@
 # ESP32 Motor Speed Control with L298N and IR Sensor
 
-This project uses an ESP32 to control a DC motor via an L298N H-Bridge, reads rotation speed from an IR sensor connected to a slotted wheel on the motor shaft, and serves a simple web interface to control motor direction and speed. The system accounts for an 11-slot encoder wheel and a 35:1 gearbox reduction to display the actual output shaft RPM.
+This project uses a motor & gears from a Microsoft Sidewinder force feedback wheels and an ESP32 to control a DC motor via an L298N H-Bridge, reads rotation speed from an IR sensor connected to a slotted wheel on the motor shaft, and serves a simple web interface to control motor direction and speed. The system accounts for an 11-slot encoder wheel and a 35:1 gearbox reduction to display the actual output shaft RPM.
 
 ## Features
 
