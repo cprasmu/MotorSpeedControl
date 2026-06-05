@@ -75,7 +75,7 @@ This project uses an ESP32 to control a DC motor via an L298N H-Bridge, reads ro
 - The IR sensor reads an 11-slot encoder wheel on the motor shaft
 - The system includes a 35:1 gearbox reduction ratio in RPM calculations and position control
 - The motor speed is controlled via PWM on GPIO 25. Ensure your L298N ENA pin is connected to a PWM-capable pin.
-- The IR sensor uses an interrupt on GPIO 33. Make sure the sensor output is clean; we use INPUT_PULLUP.
+- The IR sensor uses an interrupt on GPIO 33. Make sure the sensor output is clean; we use INPUT_PULLDOWN.
 - For safety, start with low motor speeds and ensure the motor is securely mounted.
 - The precise turn functions run in separate FreeRTOS tasks to avoid blocking the web server
 
