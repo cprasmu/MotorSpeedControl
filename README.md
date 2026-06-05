@@ -90,3 +90,8 @@ This project uses a motor & gears from a Microsoft Sidewinder force feedback whe
 ## License
 
 This project is open source and available for modification and use.
+
+
+## user Interface
+
+![Assembled View](./images/userInterface.png)
