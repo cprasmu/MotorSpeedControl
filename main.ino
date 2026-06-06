@@ -8,7 +8,8 @@
 #include <WebServer.h>
 #include <Arduino.h> // For basic Arduino functions
 // FreeRTOS is included by default in ESP32 Arduino core
-
+#include <ESP32Servo.h>
+ESP32PWM pwm;
 // Web server on port 80
 WebServer server(80);
 
@@ -20,6 +21,10 @@ const char* password = "12345678";
 const int motorIN1 = 27; // Direction pin 1
 const int motorIN2 = 26; // Direction pin 2
 const int motorPWM = 25; // Speed control (PWM)
+
+// PWM settings
+const int pwmFreq = 5000; // 5 kHz PWM frequency
+const int pwmResolution = 8; // 8-bit resolution (0-255)
 
 // IR sensor pin
 const int irSensorPin = 33;
@@ -46,21 +51,30 @@ void setMotor(String direction, int speed) {
   speed = constrain(speed, 0, 255);
   motorSpeed = speed;
   motorDirection = direction;
-
+  
   if (direction == "Forward") {
     digitalWrite(motorIN1, HIGH);
     digitalWrite(motorIN2, LOW);
-    analogWrite(motorPWM, speed);
+    //analogWrite(motorPWM, speed);
+    //ledcWrite(motorPWM, speed); // Use ESP32 PWM API
+    //pwm.writeScaled(0.1);
+     //pwm.write(speed);
   } else if (direction == "Backward") {
     digitalWrite(motorIN1, LOW);
     digitalWrite(motorIN2, HIGH);
-    analogWrite(motorPWM, speed);
+    //analogWrite(motorPWM, speed);
+    //ledcWrite(motorPWM, speed); // Use ESP32 PWM API
+    //pwm.writeScaled(1.0);
+    //pwm.write(speed);
   } else { // Stop
     digitalWrite(motorIN1, LOW);
     digitalWrite(motorIN2, LOW);
-    analogWrite(motorPWM, 0);
+    //analogWrite(motorPWM, 0);
+    //ledcWrite(motorPWM, 0); // Use ESP32 PWM API
+    //pwm.writeScaled(0);
     motorSpeed = 0;
   }
+   pwm.write(speed);
 }
 
 // IR sensor interrupt handler
@@ -475,12 +489,21 @@ void handleTurn10CCW() {
 }
 
 void setup() {
+  ESP32PWM::allocateTimer(0);
+	ESP32PWM::allocateTimer(1);
+	ESP32PWM::allocateTimer(2);
+	ESP32PWM::allocateTimer(3);
+
+  pwm.attachPin(motorPWM, pwmFreq, pwmResolution); // 1KHz 10 bits
   Serial.begin(115200);
    
   // Set motor pins as outputs
   pinMode(motorIN1, OUTPUT);
   pinMode(motorIN2, OUTPUT);
-  pinMode(motorPWM, OUTPUT);
+  //pinMode(motorPWM, OUTPUT);
+   
+  // Setup PWM for motor speed control using modern ESP32 API
+  ////ledcAttach(motorPWM, pwmFreq, pwmResolution);
    
   // Set IR sensor pin as input with interrupt
   pinMode(irSensorPin, INPUT_PULLDOWN);
