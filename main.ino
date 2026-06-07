@@ -2,6 +2,11 @@
   Motor Speed Control with ESP32 and L298N H-Bridge
   Reads IR sensor for rotation count
   Serves a web page to control motor speed and direction
+  IR Receiver via Apple TV remote (Forward, Backward, Stop, Speed Up, Speed Down, Rotate 10 turns CW/CCW)
+  TFT display shows speed, RPM, direction, and gear ratio
+  Buttons for manual control (Forward, Backward, Stop, Speed Up, Speed Down)
+  Status LEDs indicate motor state (Green for running, Red for stopped)
+  FreeRTOS tasks used for non-blocking motor rotation commands from web UI  
 */
 
 #define HAS_DISPLAY
