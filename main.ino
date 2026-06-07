@@ -5,6 +5,17 @@
 */
 
 
+
+
+
+#include <WiFi.h>
+#include <WebServer.h>
+#include <Arduino.h> // For basic Arduino functions
+// FreeRTOS is included by default in ESP32 Arduino core
+#include <ESP32Servo.h>
+#include <TFT_eSPI.h> // Include TFT_eSPI library for TTGO T-display
+#include <IRremote.hpp> // Notice the .hpp extension for newer versions
+
 #define USER_SETUP_INFO "User_Setup"
 #define ST7789_DRIVER
 #define TFT_WIDTH  135
@@ -23,15 +34,6 @@
 #define LOAD_FONT8
 #define LOAD_FONT8N
 #define TOUCH_CS -1
-
-
-#include <WiFi.h>
-#include <WebServer.h>
-#include <Arduino.h> // For basic Arduino functions
-// FreeRTOS is included by default in ESP32 Arduino core
-#include <ESP32Servo.h>
-#include <TFT_eSPI.h> // Include TFT_eSPI library for TTGO T-display
-#include <IRremote.hpp> // Notice the .hpp extension for newer versions
 
 ESP32PWM pwm;
 TFT_eSPI tft = TFT_eSPI(); // Create TFT_eSPI object
