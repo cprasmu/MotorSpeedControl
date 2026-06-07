@@ -452,40 +452,24 @@ const char index_html[] PROGMEM = R"rawliteral(
         this.innerText = "Set Gear Ratio";
       }, 1000);
     }
-    // Update RPM every 250ms
-    setInterval(function() {
-      var xhr = new XMLHttpRequest();
-      xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          document.getElementById("rpmValue").innerText = this.responseText;
-        }
-      };
-      xhr.open("GET", "/getRPM", true);
-      xhr.send();
-    }, 250);
-    
-    setInterval(function() {
-      var xhr = new XMLHttpRequest();
-      xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          document.getElementById("speedValue").innerText = this.responseText;
-        }
-      };
-      xhr.open("GET", "/getSpeed", true);
-      xhr.send();
-    }, 250);
-
-    // Update motor RPM every 250ms
-    setInterval(function() {
-      var xhr = new XMLHttpRequest();
-      xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          document.getElementById("motorRpmValue").innerText = this.responseText;
-        }
-      };
-      xhr.open("GET", "/getMotorRPM", true);
-      xhr.send();
-    }, 250);
+     // Update all status every 250ms using combined endpoint
+     setInterval(function() {
+       var xhr = new XMLHttpRequest();
+       xhr.onreadystatechange = function() {
+         if (this.readyState == 4 && this.status == 200) {
+           try {
+             var status = JSON.parse(this.responseText);
+             document.getElementById("speedValue").innerText = status.speed;
+             document.getElementById("rpmValue").innerText = status.rpm;
+             document.getElementById("motorRpmValue").innerText = status.motorRpm;
+           } catch (e) {
+             console.error("Error parsing status JSON:", e);
+           }
+         }
+       };
+       xhr.open("GET", "/getStatus", true);
+       xhr.send();
+     }, 250);
   </script>
 </body>
 </html>)rawliteral";
@@ -533,7 +517,14 @@ void handleMotorRPM() {
 }
 
 void handleGetStatus() {
-  server.send(200, "text/plain", "{'speed':" + String((int)motorSpeed) + ",'gearboxRatio':" + GEARBOX_RATIO + ",'rpm':" +  String((int)rpm) + "'motorRpm':" + String((int)motorRpm) + "'motorDirection':'" + motorDirection + "'}");
+  String json = "{";
+  json += "\"speed\":" + String((int)motorSpeed) + ",";
+  json += "\"gearboxRatio\":" + String(GEARBOX_RATIO) + ",";
+  json += "\"rpm\":" + String((int)rpm) + ",";
+  json += "\"motorRpm\":" + String((int)motorRpm) + ",";
+  json += "\"motorDirection\":\"" + motorDirection + "\"";
+  json += "}";
+  server.send(200, "application/json", json);
 }
 
 // Handle one turn clockwise request
