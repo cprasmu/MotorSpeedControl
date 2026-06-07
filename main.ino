@@ -4,14 +4,24 @@
   Serves a web page to control motor speed and direction
 */
 
+#define HAS_DISPLAY
+#define HAS_REMOTE
+
 #include <WiFi.h>
 #include <WebServer.h>
 #include <Arduino.h> // For basic Arduino functions
 // FreeRTOS is included by default in ESP32 Arduino core
 #include <ESP32Servo.h>
-#include <TFT_eSPI.h> // Include TFT_eSPI library for TTGO T-display
-#include <IRremote.hpp> // Notice the .hpp extension for newer versions
 
+
+#if defined (HAS_REMOTE)
+#include <IRremote.hpp> // Notice the .hpp extension for newer versions
+const int IR_RECEIVE_PIN = 32; // Digital Pin connected to OUT
+#endif
+
+
+#if defined (HAS_DISPLAY)
+#include <TFT_eSPI.h> // Include TFT_eSPI library for TTGO T-display
 #define USER_SETUP_INFO "User_Setup"
 #define ST7789_DRIVER
 #define TFT_WIDTH  135
@@ -31,10 +41,11 @@
 #define LOAD_FONT8N
 #define TOUCH_CS -1
 
-ESP32PWM pwm;
 TFT_eSPI tft = TFT_eSPI(); // Create TFT_eSPI object
+#endif
 
 
+ESP32PWM pwm;
 // Web server on port 80
 WebServer server(80);
 
@@ -48,7 +59,10 @@ const int motorIN2 = 26; // Direction pin 2
 const int motorPWM = 25; // Speed control (PWM)
 // IR sensor pin
 const int irSensorPin = 33;
-const int IR_RECEIVE_PIN = 32; // Digital Pin connected to OUT
+
+// #if defined (HAS_REMOTE)
+// const int IR_RECEIVE_PIN = 32; // Digital Pin connected to OUT
+// #endif
 
 // PWM settings
 const int pwmFreq = 20000; // 5 kHz PWM frequency
@@ -156,7 +170,7 @@ void calculateRPM() {
     lastTime = now;
   }
 }
-
+#if defined (HAS_DISPLAY)
 void updateDisplay() {
 
   // Display motor speed
@@ -208,6 +222,8 @@ void updateDisplay() {
     tft.print("Stop              ");
   }
 }
+#endif
+
 // HTML web page
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
@@ -604,6 +620,7 @@ void handleTurn10CCW() {
   );
   server.send(200, "text/plain", "Rotating counterclockwise 10 turns");
 }
+#if defined (HAS_REMOTE)
 void handleIr() {
 
  if (IrReceiver.decode()) {
@@ -652,6 +669,8 @@ void handleIr() {
     IrReceiver.resume(); 
 
 }
+#endif
+
 void setup() {
   ESP32PWM::allocateTimer(0);
 	ESP32PWM::allocateTimer(1);
@@ -664,20 +683,21 @@ void setup() {
   // Set motor pins as outputs
   pinMode(motorIN1, OUTPUT);
   pinMode(motorIN2, OUTPUT);
-   
-  pinMode(TFT_BL, OUTPUT); 
-  digitalWrite(TFT_BL, HIGH); // Turn on backlight 
-
-   // Initialize TFT display
-  tft.init();
-  tft.setRotation(1); // Adjust rotation as needed (0-3)
-  tft.fillScreen(TFT_BLACK);
   
-  // Set text color to white for labels, cyan for values (dark mode theme)
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextFont(4); // Small font for labels
-  updateDisplay();
+  #if defined (HAS_DISPLAY)
+    pinMode(TFT_BL, OUTPUT); 
+    digitalWrite(TFT_BL, HIGH); // Turn on backlight 
 
+    // Initialize TFT display
+    tft.init();
+    tft.setRotation(1); // Adjust rotation as needed (0-3)
+    tft.fillScreen(TFT_BLACK);
+    
+    // Set text color to white for labels, cyan for values (dark mode theme)
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setTextFont(4); // Small font for labels
+    updateDisplay();
+  #endif
   // Set IR sensor pin as input with interrupt
   pinMode(irSensorPin, INPUT_PULLDOWN);
   attachInterrupt(digitalPinToInterrupt(irSensorPin), handleIRSensor, FALLING);
@@ -705,8 +725,9 @@ void setup() {
   server.on("/setGearRatio", handleGearRatio);
   server.on("/getStatus", handleGetStatus);
 
+  #if defined (HAS_REMOTE)
   IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK); 
-
+  #endif
   // Start server
   server.begin();
   Serial.println("HTTP server started");
@@ -714,8 +735,11 @@ void setup() {
 
 void loop() {
   server.handleClient();
-  handleIr();
+  #if defined (HAS_REMOTE)
+    handleIr();
+  #endif
   calculateRPM(); // Update RPM every 250ms
-  updateDisplay(); // Update TFT display
-
+  #if defined (HAS_DISPLAY)
+    updateDisplay(); // Update TFT display
+  #endif
 }
