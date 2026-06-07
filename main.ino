@@ -8,10 +8,13 @@
 #define HAS_REMOTE
 #define HAS_BUTTONS
 #define HAS_WEB_UI
+#define HAS_STATUS_LED
 
-// Status LED pins
-const int redLEDPin = 14;   // Red LED for stopped motor
-const int greenLEDPin = 12; // Green LED for running motor
+#if defined (HAS_STATUS_LED)
+  // Status LED pins
+  const int redLEDPin = 14;   // Red LED for stopped motor
+  const int greenLEDPin = 12; // Green LED for running motor
+#endif
 
 #if defined (HAS_WEB_UI)
   #include <WiFi.h>
@@ -107,22 +110,28 @@ void setMotor(String direction, int speed) {
   if (direction == "Forward") {
     digitalWrite(motorIN1, HIGH);
     digitalWrite(motorIN2, LOW);
-    // Motor running - green LED on, red LED off
-    digitalWrite(greenLEDPin, HIGH);
-    digitalWrite(redLEDPin, LOW);
+    #if defined (HAS_STATUS_LED)
+      // Motor running - green LED on, red LED off
+      digitalWrite(greenLEDPin, HIGH);
+      digitalWrite(redLEDPin, LOW);
+    #endif
   } else if (direction == "Backward") {
     digitalWrite(motorIN1, LOW);
     digitalWrite(motorIN2, HIGH);
-    // Motor running - green LED on, red LED off
-    digitalWrite(greenLEDPin, HIGH);
-    digitalWrite(redLEDPin, LOW);
+    #if defined (HAS_STATUS_LED)
+      // Motor running - green LED on, red LED off
+      digitalWrite(greenLEDPin, HIGH);
+      digitalWrite(redLEDPin, LOW);
+    #endif
   } else { // Stop
     digitalWrite(motorIN1, LOW);
     digitalWrite(motorIN2, LOW);
     speed = 0;
-    // Motor stopped - red LED on, green LED off
-    digitalWrite(redLEDPin, HIGH);
-    digitalWrite(greenLEDPin, LOW);
+    #if defined (HAS_STATUS_LED)
+      // Motor stopped - red LED on, green LED off
+      digitalWrite(redLEDPin, HIGH);
+      digitalWrite(greenLEDPin, LOW);
+    #endif
   }
   pwm.write(speed);
 }
@@ -699,9 +708,11 @@ void setup() {
   pinMode(motorIN1, OUTPUT);
   pinMode(motorIN2, OUTPUT);
   
-  // Set LED pins as outputs
-  pinMode(redLEDPin, OUTPUT);
-  pinMode(greenLEDPin, OUTPUT);
+  #if defined (HAS_STATUS_LED)
+    // Set LED pins as outputs
+    pinMode(redLEDPin, OUTPUT);
+    pinMode(greenLEDPin, OUTPUT);
+  #endif
   
   #if defined (HAS_DISPLAY)
     pinMode(TFT_BL, OUTPUT); 
