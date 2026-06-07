@@ -131,7 +131,7 @@ void rotateMotorTurns(String direction, float turns) {
   interrupts();
    
   // Set motor direction
-  setMotor(direction, 200); // Use reasonable speed (200/255)
+  setMotor(direction, motorSpeed);
    
   // Wait until target pulses reached (relative to baseline)
   while (true) {
@@ -148,7 +148,7 @@ void rotateMotorTurns(String direction, float turns) {
   }
    
   // Stop motor
-  setMotor("Stop", 0);
+  setMotor("Stop", motorSpeed);
 }
 
 // Function to calculate RPM based on pulses per revolution
