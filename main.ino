@@ -4,10 +4,6 @@
   Serves a web page to control motor speed and direction
 */
 
-
-
-
-
 #include <WiFi.h>
 #include <WebServer.h>
 #include <Arduino.h> // For basic Arduino functions
