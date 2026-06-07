@@ -10,7 +10,6 @@
 #define HAS_WEB_UI
 #define HAS_STATUS_LED
 
-
 #if defined (HAS_BUTTONS)
   // Button pins
   const int forwardButtonPin = 15;  // Button to move forward
@@ -19,8 +18,6 @@
   const int speedUpButtonPin = 22; // Button to increase speed
   const int speedDownButtonPin = 21; // Button to decrease speed  
 #endif
-
-
 
 #if defined (HAS_STATUS_LED)
   // Status LED pins
@@ -37,12 +34,10 @@
 // FreeRTOS is included by default in ESP32 Arduino core
 #include <ESP32Servo.h>
 
-
 #if defined (HAS_REMOTE)
   #include <IRremote.hpp> // Notice the .hpp extension for newer versions
   const int IR_RECEIVE_PIN = 32; // Digital Pin connected to OUT
 #endif
-
 
 #if defined (HAS_DISPLAY)
   #include <TFT_eSPI.h> // Include TFT_eSPI library for TTGO T-display
@@ -146,9 +141,6 @@ void setMotor(String direction, int speed) {
     #endif
   }
   pwm.write(speed);
-}
-  pwm.write(speed);
-
 }
 
 // IR sensor interrupt handler
