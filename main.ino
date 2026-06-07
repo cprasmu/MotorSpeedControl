@@ -8,6 +8,22 @@
 #define HAS_REMOTE
 #define HAS_BUTTONS
 #define HAS_WEB_UI
+#define HAS_STATUS_LED
+
+#if defined (HAS_BUTTONS)
+  // Button pins
+  const int forwardButtonPin = 15;  // Button to move forward
+  const int backwardButtonPin = 2; // Button to move backward
+  const int stopButtonPin = 17;     // Button to stop motor
+  const int speedUpButtonPin = 22; // Button to increase speed
+  const int speedDownButtonPin = 21; // Button to decrease speed  
+#endif
+
+#if defined (HAS_STATUS_LED)
+  // Status LED pins
+  const int redLEDPin = 13;   // Red LED for stopped motor
+  const int greenLEDPin = 12; // Green LED for running motor
+#endif
 
 #if defined (HAS_WEB_UI)
   #include <WiFi.h>
@@ -18,12 +34,10 @@
 // FreeRTOS is included by default in ESP32 Arduino core
 #include <ESP32Servo.h>
 
-
 #if defined (HAS_REMOTE)
   #include <IRremote.hpp> // Notice the .hpp extension for newer versions
   const int IR_RECEIVE_PIN = 32; // Digital Pin connected to OUT
 #endif
-
 
 #if defined (HAS_DISPLAY)
   #include <TFT_eSPI.h> // Include TFT_eSPI library for TTGO T-display
@@ -99,20 +113,34 @@ void setMotor(String direction, int speed) {
   speed = constrain(speed, 0, 255);
   motorSpeed = speed;
   motorDirection = direction;
-  
+   
   if (direction == "Forward") {
     digitalWrite(motorIN1, HIGH);
     digitalWrite(motorIN2, LOW);
+    #if defined (HAS_STATUS_LED)
+      // Motor running - green LED on, red LED off
+      digitalWrite(greenLEDPin, HIGH);
+      digitalWrite(redLEDPin, LOW);
+    #endif
   } else if (direction == "Backward") {
     digitalWrite(motorIN1, LOW);
     digitalWrite(motorIN2, HIGH);
+    #if defined (HAS_STATUS_LED)
+      // Motor running - green LED on, red LED off
+      digitalWrite(greenLEDPin, HIGH);
+      digitalWrite(redLEDPin, LOW);
+    #endif
   } else { // Stop
     digitalWrite(motorIN1, LOW);
     digitalWrite(motorIN2, LOW);
     speed = 0;
+    #if defined (HAS_STATUS_LED)
+      // Motor stopped - red LED on, green LED off
+      digitalWrite(redLEDPin, HIGH);
+      digitalWrite(greenLEDPin, LOW);
+    #endif
   }
   pwm.write(speed);
-
 }
 
 // IR sensor interrupt handler
@@ -671,6 +699,37 @@ void handleIr() {
 }
 #endif
 
+#if defined (HAS_BUTTONS)
+void IRAM_ATTR handleButtonPress() {
+    // Read button states (active LOW)
+    bool forwardPressed = digitalRead(forwardButtonPin) == LOW;
+    bool backwardPressed = digitalRead(backwardButtonPin) == LOW;
+    bool stopPressed = digitalRead(stopButtonPin) == LOW;
+    bool speedUpPressed = digitalRead(speedUpButtonPin) == LOW;
+    bool speedDownPressed = digitalRead(speedDownButtonPin) == LOW;
+
+    // Determine motor direction based on button states
+    if (forwardPressed) {
+      setMotor("Forward", motorSpeed);
+    } else if (backwardPressed) {
+      setMotor("Backward", motorSpeed);
+    } else if (stopPressed) {
+      setMotor("Stop", motorSpeed);
+    }
+
+    // Adjust speed based on button presses
+    if (speedUpPressed && motorSpeed < 255) {
+      motorSpeed += 1; // Increase speed
+      setMotor(motorDirection, motorSpeed); // Update motor with new speed
+    }
+    
+    if (speedDownPressed && motorSpeed > 0) {
+      motorSpeed -= 1; // Decrease speed
+      setMotor(motorDirection, motorSpeed); // Update motor with new speed
+    }
+}
+#endif
+
 void setup() {
   ESP32PWM::allocateTimer(0);
 	ESP32PWM::allocateTimer(1);
@@ -679,10 +738,31 @@ void setup() {
 
   pwm.attachPin(motorPWM, pwmFreq, pwmResolution); // 1KHz 10 bits
   Serial.begin(115200);
-   
+  
   // Set motor pins as outputs
   pinMode(motorIN1, OUTPUT);
   pinMode(motorIN2, OUTPUT);
+
+  #if defined (HAS_BUTTONS)
+    // Set button pins as inputs with pull-up resistors
+    pinMode(forwardButtonPin, INPUT_PULLUP);
+    pinMode(backwardButtonPin, INPUT_PULLUP);
+    pinMode(stopButtonPin, INPUT_PULLUP);
+    pinMode(speedUpButtonPin, INPUT_PULLUP);
+    pinMode(speedDownButtonPin, INPUT_PULLUP);
+
+    attachInterrupt(digitalPinToInterrupt(backwardButtonPin), handleButtonPress, FALLING);
+    attachInterrupt(digitalPinToInterrupt(forwardButtonPin), handleButtonPress, FALLING);
+    attachInterrupt(digitalPinToInterrupt(stopButtonPin), handleButtonPress, FALLING);
+    attachInterrupt(digitalPinToInterrupt(speedUpButtonPin), handleButtonPress, FALLING);
+    attachInterrupt(digitalPinToInterrupt(speedDownButtonPin), handleButtonPress, FALLING);
+  #endif
+
+  #if defined (HAS_STATUS_LED)
+    // Set LED pins as outputs
+    pinMode(redLEDPin, OUTPUT);
+    pinMode(greenLEDPin, OUTPUT);
+  #endif
   
   #if defined (HAS_DISPLAY)
     pinMode(TFT_BL, OUTPUT); 
@@ -701,7 +781,7 @@ void setup() {
   // Set IR sensor pin as input with interrupt
   pinMode(irSensorPin, INPUT_PULLDOWN);
   attachInterrupt(digitalPinToInterrupt(irSensorPin), handleIRSensor, FALLING);
-   
+
   // Initialize motor 
   setMotor("Stop", motorSpeed);
   
