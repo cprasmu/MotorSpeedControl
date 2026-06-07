@@ -6,52 +6,60 @@
 
 #define HAS_DISPLAY
 #define HAS_REMOTE
+#define HAS_BUTTONS
+#define HAS_WEB_UI
 
-#include <WiFi.h>
-#include <WebServer.h>
+#if defined (HAS_WEB_UI)
+  #include <WiFi.h>
+  #include <WebServer.h>
+#endif
+
 #include <Arduino.h> // For basic Arduino functions
 // FreeRTOS is included by default in ESP32 Arduino core
 #include <ESP32Servo.h>
 
 
 #if defined (HAS_REMOTE)
-#include <IRremote.hpp> // Notice the .hpp extension for newer versions
-const int IR_RECEIVE_PIN = 32; // Digital Pin connected to OUT
+  #include <IRremote.hpp> // Notice the .hpp extension for newer versions
+  const int IR_RECEIVE_PIN = 32; // Digital Pin connected to OUT
 #endif
 
 
 #if defined (HAS_DISPLAY)
-#include <TFT_eSPI.h> // Include TFT_eSPI library for TTGO T-display
-#define USER_SETUP_INFO "User_Setup"
-#define ST7789_DRIVER
-#define TFT_WIDTH  135
-#define TFT_HEIGHT 240
-#define TFT_MOSI 19
-#define TFT_SCLK 18
-#define TFT_CS   5
-#define TFT_DC   16
-#define TFT_RST  23
-#define TFT_BL   4
-#define LOAD_GLCD
-#define LOAD_FONT2
-#define LOAD_FONT4
-#define LOAD_FONT6
-#define LOAD_FONT7
-#define LOAD_FONT8
-#define LOAD_FONT8N
-#define TOUCH_CS -1
+  #include <TFT_eSPI.h> // Include TFT_eSPI library for TTGO T-display
+  #define USER_SETUP_INFO "User_Setup"
+  #define ST7789_DRIVER
+  #define TFT_WIDTH  135
+  #define TFT_HEIGHT 240
+  #define TFT_MOSI 19
+  #define TFT_SCLK 18
+  #define TFT_CS   5
+  #define TFT_DC   16
+  #define TFT_RST  23
+  #define TFT_BL   4
+  #define LOAD_GLCD
+  #define LOAD_FONT2
+  #define LOAD_FONT4
+  #define LOAD_FONT6
+  #define LOAD_FONT7
+  #define LOAD_FONT8
+  #define LOAD_FONT8N
+  #define TOUCH_CS -1
 
-TFT_eSPI tft = TFT_eSPI(); // Create TFT_eSPI object
+  TFT_eSPI tft = TFT_eSPI(); // Create TFT_eSPI object
 #endif
 
 
-ESP32PWM pwm;
-// Web server on port 80
-WebServer server(80);
 
-// WiFi access point credentials
-const char* ssid = "ESP32_Motor_Control";
-const char* password = "12345678";
+#if defined (HAS_WEB_UI)
+  // Web server on port 80
+  WebServer server(80);
+
+  // WiFi access point credentials
+  const char* ssid = "ESP32_Motor_Control";
+  const char* password = "12345678";
+#endif
+
 
 // Motor control pins (L298N)
 const int motorIN1 = 27; // Direction pin 1
@@ -60,11 +68,9 @@ const int motorPWM = 25; // Speed control (PWM)
 // IR sensor pin
 const int irSensorPin = 33;
 
-// #if defined (HAS_REMOTE)
-// const int IR_RECEIVE_PIN = 32; // Digital Pin connected to OUT
-// #endif
 
 // PWM settings
+ESP32PWM pwm;
 const int pwmFreq = 20000; // 5 kHz PWM frequency
 const int pwmResolution = 8; // 8-bit resolution (0-255)
 
@@ -224,6 +230,7 @@ void updateDisplay() {
 }
 #endif
 
+#if defined (HAS_WEB_UI)
 // HTML web page
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
@@ -611,6 +618,8 @@ void handleTurn10CCW() {
   );
   server.send(200, "text/plain", "Rotating counterclockwise 10 turns");
 }
+#endif
+
 #if defined (HAS_REMOTE)
 void handleIr() {
 
@@ -695,42 +704,50 @@ void setup() {
    
   // Initialize motor 
   setMotor("Stop", motorSpeed);
-   
-  // Start WiFi in access point mode
-  WiFi.softAP(ssid, password);
-  IPAddress IP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(IP);
-   
-  // Define web server routes
-  server.on("/", handleRoot);
-  server.on("/setDirection", handleDirection);
-  server.on("/setSpeed", handleSetSpeed);
-  server.on("/getSpeed", handleGetSpeed);
-  server.on("/getRPM", handleRPM);
-  server.on("/getMotorRPM", handleMotorRPM);
-  server.on("/turnCW", handleTurnCW);
-  server.on("/turnCCW", handleTurnCCW);
-  server.on("/turn10CW", handleTurn10CW);
-  server.on("/turn10CCW", handleTurn10CCW);
-  server.on("/setGearRatio", handleGearRatio);
-  server.on("/getStatus", handleGetStatus);
+  
+  #if defined (HAS_WEB_UI)
+    // Start WiFi in access point mode
+    WiFi.softAP(ssid, password);
+    IPAddress IP = WiFi.softAPIP();
+    Serial.print("AP IP address: ");
+    Serial.println(IP);
+  
+    // Define web server routes
+    server.on("/", handleRoot);
+    server.on("/setDirection", handleDirection);
+    server.on("/setSpeed", handleSetSpeed);
+    server.on("/getSpeed", handleGetSpeed);
+    server.on("/getRPM", handleRPM);
+    server.on("/getMotorRPM", handleMotorRPM);
+    server.on("/turnCW", handleTurnCW);
+    server.on("/turnCCW", handleTurnCCW);
+    server.on("/turn10CW", handleTurn10CW);
+    server.on("/turn10CCW", handleTurn10CCW);
+    server.on("/setGearRatio", handleGearRatio);
+    server.on("/getStatus", handleGetStatus);
+    // Start server
+    server.begin();
+    Serial.println("HTTP server started");
+  #endif
 
   #if defined (HAS_REMOTE)
-  IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK); 
+    IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
+    Serial.println("IR receiver started");
   #endif
-  // Start server
-  server.begin();
-  Serial.println("HTTP server started");
+
 }
 
 void loop() {
-  server.handleClient();
+  #if defined (HAS_WEB_UI)
+    server.handleClient();
+  #endif
   #if defined (HAS_REMOTE)
     handleIr();
   #endif
-  calculateRPM(); // Update RPM every 250ms
+  
   #if defined (HAS_DISPLAY)
     updateDisplay(); // Update TFT display
   #endif
+
+  calculateRPM(); // Update RPM every 250ms
 }
