@@ -6,7 +6,7 @@
   TFT display shows speed, RPM, direction, and gear ratio
   Buttons for manual control (Forward, Backward, Stop, Speed Up, Speed Down)
   Status LEDs indicate motor state (Green for running, Red for stopped)
-  FreeRTOS tasks used for non-blocking motor rotation commands from web UI  
+  FreeRTOS tasks used for non-blocking motor rotation commands from web UI
 */
 
 #define HAS_DISPLAY
@@ -106,7 +106,7 @@ long pulses = 0; // Declare pulses variable
 
 // Motor state
 String motorDirection = "Stop";
-int motorSpeed = 200 ; // Start at 200 (range 0-255)
+volatile int motorSpeed = 200 ; // Start at 200 (range 0-255)
 
 // Encoder and gearbox constants
 const int PULSES_PER_REVOLUTION = 11; // 11 slots on the encoder wheel
@@ -118,7 +118,7 @@ void setMotor(String direction, int speed) {
   speed = constrain(speed, 0, 255);
   motorSpeed = speed;
   motorDirection = direction;
-   
+  
   if (direction == "Forward") {
     digitalWrite(motorIN1, HIGH);
     digitalWrite(motorIN2, LOW);
@@ -412,7 +412,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     </div>
   </div>
 
-  <input type="number" min="1" max="225" class="speed-input" id="speedInput" value="200">
+  <input type="number" min="1" max="255" class="speed-input" id="speedInput" value="200">
   <button class="speed-button" onclick="updateSpeed()">Set Speed</button>
   <input type="number" min="1" max="200" class="gear-input" id="gearInput" value="16">
   <button class="gear-button" onclick="updateGearRatio()">Set Gear Ratio</button>
@@ -661,37 +661,44 @@ void handleIr() {
   if (IrReceiver.decodedIRData.protocol == APPLE) {
       switch (IrReceiver.decodedIRData.command) {
         case 8: 
-          setMotor("Forward", motorSpeed); 
+          setMotor("Forward", motorSpeed);
+          Serial.println("Forward button pressed.");
           break;
 
         case 7:
-          setMotor("Backward", motorSpeed); 
+          setMotor("Backward", motorSpeed);
+          Serial.println("Backward button pressed.");
           break;
 
         case 93:
           setMotor("Stop", motorSpeed); 
+          Serial.println("Stop button pressed.");
           break;
 
         case 11:
-          if (motorSpeed < 255) {
-            motorSpeed += 1;
+          if (motorSpeed < 253) {
+            motorSpeed = motorSpeed + 3;
           }
+          Serial.println("Speed up button pressed. New speed: " + String(motorSpeed));
           setMotor(motorDirection, motorSpeed); 
           break;
 
         case 13:
-          if (motorSpeed > 0) {
-            motorSpeed -= 1;
+          if (motorSpeed > 2) {
+            motorSpeed = motorSpeed - 3;
           }
+          Serial.println("Speed down button pressed. New speed: " + String(motorSpeed));
           setMotor(motorDirection, motorSpeed); 
           break;
 
         case 94:
           handleTurn10CW();
+          Serial.println("Rotate 10 turns clockwise button pressed.");
           break;
   
         case 2:
           handleTurn10CCW();
+          Serial.println("Rotate 10 turns counterclockwise button pressed."); 
           break;
       }
 
@@ -816,7 +823,7 @@ void setup() {
   #endif
 
   #if defined (HAS_REMOTE)
-    IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
+    IrReceiver.begin(IR_RECEIVE_PIN, DISABLE_LED_FEEDBACK);
     Serial.println("IR receiver started");
   #endif
 
