@@ -160,6 +160,7 @@ void calculateRPM() {
 void updateDisplay() {
 
   // Display motor speed
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setCursor(0, 0);
   tft.print("Speed: ");
   tft.setTextColor(TFT_CYAN, TFT_BLACK);
