@@ -9,6 +9,10 @@
 #define HAS_BUTTONS
 #define HAS_WEB_UI
 
+// Status LED pins
+const int redLEDPin = 14;   // Red LED for stopped motor
+const int greenLEDPin = 12; // Green LED for running motor
+
 #if defined (HAS_WEB_UI)
   #include <WiFi.h>
   #include <WebServer.h>
@@ -99,18 +103,29 @@ void setMotor(String direction, int speed) {
   speed = constrain(speed, 0, 255);
   motorSpeed = speed;
   motorDirection = direction;
-  
+   
   if (direction == "Forward") {
     digitalWrite(motorIN1, HIGH);
     digitalWrite(motorIN2, LOW);
+    // Motor running - green LED on, red LED off
+    digitalWrite(greenLEDPin, HIGH);
+    digitalWrite(redLEDPin, LOW);
   } else if (direction == "Backward") {
     digitalWrite(motorIN1, LOW);
     digitalWrite(motorIN2, HIGH);
+    // Motor running - green LED on, red LED off
+    digitalWrite(greenLEDPin, HIGH);
+    digitalWrite(redLEDPin, LOW);
   } else { // Stop
     digitalWrite(motorIN1, LOW);
     digitalWrite(motorIN2, LOW);
     speed = 0;
+    // Motor stopped - red LED on, green LED off
+    digitalWrite(redLEDPin, HIGH);
+    digitalWrite(greenLEDPin, LOW);
   }
+  pwm.write(speed);
+}
   pwm.write(speed);
 
 }
@@ -679,10 +694,14 @@ void setup() {
 
   pwm.attachPin(motorPWM, pwmFreq, pwmResolution); // 1KHz 10 bits
   Serial.begin(115200);
-   
+  
   // Set motor pins as outputs
   pinMode(motorIN1, OUTPUT);
   pinMode(motorIN2, OUTPUT);
+  
+  // Set LED pins as outputs
+  pinMode(redLEDPin, OUTPUT);
+  pinMode(greenLEDPin, OUTPUT);
   
   #if defined (HAS_DISPLAY)
     pinMode(TFT_BL, OUTPUT); 
